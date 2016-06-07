@@ -3,7 +3,6 @@ import Models.HashTagPolarity;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -21,10 +20,13 @@ public class WordCount extends Configured implements Tool
 
         args = new GenericOptionsParser(conf, args).getRemainingArgs();
 
+        conf.setLong("TopN", Long.parseLong(args[4]));
+
         Job job = Job.getInstance(conf);
 
         job.setJarByClass(WordCount.class);
         job.setMapperClass(HashTagMapper.class);
+        job.setCombinerClass(HasTagCombiner.class);
         job.setReducerClass(HasTagReducer.class);
 
         job.setMapOutputKeyClass(HashTagPair.class);

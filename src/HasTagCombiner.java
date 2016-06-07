@@ -3,6 +3,8 @@ import Models.HashTagPolarity;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
@@ -12,23 +14,26 @@ import java.util.Map;
 /**
  * Created by Marc on 2/6/16.
  */
-public class HasTagReducer extends Reducer<HashTagPair, HashTagPolarity, Text, Text>
+public class HasTagCombiner extends Reducer<HashTagPair, HashTagPolarity, HashTagPair, HashTagPolarity>
 {
 
     private Map<HashTagPair, HashTagPolarity> topHasTags = new HashMap<>();
-    Long topN = Long.valueOf(20);
 
+    Long topN = Long.valueOf(20);
 
     @Override
     protected void setup(Reducer.Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
-        topN = conf.getLong("TopN",0);
+        topN = conf.getLong("TopN",0)*2;
 
     }
 
     public void reduce(HashTagPair key, Iterable<HashTagPolarity> values, Context context)
             throws IOException, InterruptedException
     {
+
+
+
         HashTagPolarity finalPolarity = new HashTagPolarity();
         HashTagPair finalKey = new HashTagPair();
 
@@ -97,7 +102,7 @@ public class HasTagReducer extends Reducer<HashTagPair, HashTagPolarity, Text, T
                             String.valueOf(topHasTags.get(key).getNegative());
 
 
-            context.write(new Text(key.getHashtag().toString()+"\t"), new Text(output));
+            context.write(key, topHasTags.get(key));
         }
 
     }
