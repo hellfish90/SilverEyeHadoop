@@ -51,4 +51,21 @@ public class HashTagPair implements WritableComparable<HashTagPair> {
     public int compareTo(HashTagPair o) {
         return getHashtag().compareTo(o.getHashtag());
     }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        HashTagPair that = (HashTagPair) o;
+
+        return hashtag.equals(that.hashtag);
+
+    }
+
+    @Override
+    public int hashCode() {
+        return hashtag.hashCode();
+    }
 }

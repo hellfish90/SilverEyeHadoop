@@ -1,7 +1,9 @@
 import Models.HashTagPair;
 import Models.HashTagPolarity;
+import com.google.gson.JsonObject;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -52,11 +54,12 @@ public class HashTagMapper extends Mapper<Object, Text, HashTagPair, HashTagPola
 
             lang = (String) jsonObj.get("lang");
             text = (String) jsonObj.get("text");
+            ;
 
             if (lang.equals("en")){
 
                 String[] words = text.split(" ");
-                hashtags = getHastags(words);
+                hashtags = getHastags(jsonObj.getJSONObject("entities").getJSONArray("hashtags"));
                 positive = getPolarityWords(words, positiveWords);
                 negative = getPolarityWords(words, negativeWords);
 
@@ -115,15 +118,21 @@ public class HashTagMapper extends Mapper<Object, Text, HashTagPair, HashTagPola
     }
 
 
-    private List<String> getHastags(String[] words) {
+    private List<String> getHastags(JSONArray words) {
 
         HashSet<String> hastags = new HashSet<String>();
 
-        for (String word: words){
-            if (word.length()>0 && word.charAt(0) =='#'){
-                hastags.add(word);
+        for (int i=0;i<words.length();i++){
+            try {
+                JSONObject json = words.getJSONObject(i);
+
+                hastags.add(json.getString("text"));
+
+            } catch (JSONException e) {
+                e.printStackTrace();
             }
         }
+
 
         return new ArrayList<String>(hastags);
     }

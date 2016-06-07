@@ -50,8 +50,6 @@ public class HasTagCombiner extends Reducer<HashTagPair, HashTagPolarity, HashTa
         }
 
 
-        finalPolarity.calculateRatios();
-
         finalKey.setCount(new LongWritable(count));
         finalKey.setHashtag(new Text(key.getHashtag().toString()));
 
