@@ -25,6 +25,7 @@ public class WordCount extends Configured implements Tool
         Job job = Job.getInstance(conf);
 
         job.setJarByClass(WordCount.class);
+
         job.setMapperClass(HashTagMapper.class);
         job.setCombinerClass(HasTagCombiner.class);
         job.setReducerClass(HasTagReducer.class);

@@ -46,10 +46,10 @@ public class HasTagCombiner extends Reducer<HashTagPair, HashTagPolarity, HashTa
             finalPolarity.plusNegative(val.getNegative());
             finalPolarity.plusPositive(val.getPositive());
             finalPolarity.plusWords(val.getWords());
-            key.plusCount();
+            //key.plusCount();
         }
 
-
+        finalPolarity.setCount(new LongWritable(count));
         finalKey.setCount(new LongWritable(count));
         finalKey.setHashtag(new Text(key.getHashtag().toString()));
 

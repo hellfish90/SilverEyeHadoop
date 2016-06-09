@@ -37,11 +37,11 @@ public class HasTagReducer extends Reducer<HashTagPair, HashTagPolarity, Text, T
         finalPolarity.setName(key.getHashtag().toString());
 
         for (HashTagPolarity val : values) {
-            count++;
+            count += val.getCount().get();
             finalPolarity.plusNegative(val.getNegative());
             finalPolarity.plusPositive(val.getPositive());
             finalPolarity.plusWords(val.getWords());
-            key.plusCount();
+            //key.plusCount();
         }
 
 
