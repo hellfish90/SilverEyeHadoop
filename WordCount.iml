@@ -7,7 +7,8 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="org.apache.hadoop:hadoop-common:2.7.1" level="project" />
-    <orderEntry type="library" name="org.apache.hadoop:hadoop-mapreduce-client-core:2.7.1" level="project" />
+    <orderEntry type="library" name="org.mongodb.mongo-hadoop:mongo-hadoop-core:1.5.2" level="project" />
+    <orderEntry type="library" name="org.apache.hadoop:hadoop-core:1.0.3" level="project" />
+    <orderEntry type="library" name="org.twitter4j:twitter4j-core:4.0.1" level="project" />
   </component>
 </module>

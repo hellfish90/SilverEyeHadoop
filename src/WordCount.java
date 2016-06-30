@@ -1,54 +1,118 @@
-import Models.HashTagPair;
-import Models.HashTagPolarity;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.util.Tool;
-import org.apache.hadoop.util.ToolRunner;
+/**
+ * Created by Marc on 30/6/16.
+ */
+import java.io.*;
+
+import DAO.UserAnalyzedDAO;
+import Models.Collections;
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
+import org.apache.hadoop.conf.*;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+
+import com.mongodb.hadoop.*;
+import com.mongodb.hadoop.util.*;
+import org.apache.htrace.commons.logging.Log;
+import org.apache.htrace.commons.logging.LogFactory;
+
+/**
+ * test.in db.in.insert( { x : "eliot was here" } ) db.in.insert( { x : "eliot is here" } ) db.in.insert( { x : "who is
+ * here" } ) =
+ */
+public class WordCount {
+
+    private static final Log log = LogFactory.getLog(WordCount.class);
+
+    public static class IntSumReducer extends Reducer<LongWritable, Collections, LongWritable, Collections> {
+
+        private final IntWritable result = new IntWritable();
+        private UserAnalyzedDAO userAnalyzedDAO;
+
+        protected void setup(Context context) throws IOException, InterruptedException {
+            MongoClient mongo = new MongoClient("localhost", 27017);
+            MongoDatabase db = mongo.getDatabase("SilverEye");
+            userAnalyzedDAO = new UserAnalyzedDAO(db);
 
 
-public class WordCount extends Configured implements Tool
-{
+        }
 
-    public int run(String[] args) throws Exception {
-        Configuration conf = getConf();
+        public void reduce( LongWritable key, Iterable<Collections> values, Context context )
+                throws IOException, InterruptedException{
 
-        args = new GenericOptionsParser(conf, args).getRemainingArgs();
 
-        conf.setLong("TopN", Long.parseLong(args[4]));
 
-        Job job = Job.getInstance(conf);
+            Collections collections = new Collections();
 
-        job.setJarByClass(WordCount.class);
+            for (Collections collection: values){
 
-        job.setMapperClass(HashTagMapper.class);
-        job.setCombinerClass(HasTagCombiner.class);
-        job.setReducerClass(HasTagReducer.class);
+                //Plus positive collections
+                for (Writable positiveCollection: collection.getPositiveCollections().keySet()){
 
-        job.setMapOutputKeyClass(HashTagPair.class);
-        job.setMapOutputValueClass(HashTagPolarity.class);
+                    String collectionKey = positiveCollection.toString();
+                    Long value = ((LongWritable)collection.getPositiveCollections().get(positiveCollection)).get();
+                    collections.plusPositiveCollection(collectionKey,value);
 
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Text.class);
+                }
 
-        job.setNumReduceTasks(1);
+                //Plus negative collections
+                for (Writable negativeCollection: collection.getNegativeCollections().keySet()){
 
-        FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
-        job.addCacheFile(new Path(args[2]).toUri());
-        job.addCacheFile(new Path(args[3]).toUri());
+                    String collectionKey = negativeCollection.toString();
+                    Long value = ((LongWritable)collection.getNegativeCollections().get(negativeCollection)).get();
+                    collections.plusNegativeCollection(collectionKey,value);
 
-        return (job.waitForCompletion(true) ? 0 : 1);
+                }
+
+                //Plus neutral collections
+                for (Writable neutralCollection: collection.getNeutralCollections().keySet()){
+
+                    String collectionKey = neutralCollection.toString();
+                    Long value = ((LongWritable)collection.getNeutralCollections().get(neutralCollection)).get();
+                    collections.plusNeutralCollection(collectionKey,value);
+
+                }
+
+                //Plus counter collections
+                for (Writable counterCollection: collection.getCounterCollection().keySet()){
+
+                    String collectionKey = counterCollection.toString();
+                    Long value = ((LongWritable)collection.getCounterCollection().get(counterCollection)).get();
+                    collections.plusCounterCollection(collectionKey,value);
+
+                }
+
+            }
+
+            userAnalyzedDAO.saveUser(key.get(),collections.getPositiveCollections(),
+                    collections.getNegativeCollections(), collections.getNeutralCollections(),
+                    collections.getCounterCollection());
+        }
     }
 
-    public static void main(String[] args) throws Exception {
-        int exitCode = ToolRunner.run(new WordCount(), args);
-        System.exit(exitCode);
+    public static void main( String[] args ) throws Exception{
+
+        final Configuration conf = new Configuration();
+        MongoConfigUtil.setInputURI( conf, "mongodb://localhost/SilverEye.AnalyzedTweet" );
+        MongoConfigUtil.setOutputURI( conf, "mongodb://localhost/SilverEye.AnalyzedUser" );
+
+        System.out.println( "Conf: " + conf );
+
+        final Job job = new Job( conf, "word count" );
+
+        job.setJarByClass( WordCount.class );
+
+        job.setMapperClass( UsersMapper.class );
+
+        //job.setCombinerClass( IntSumReducer.class );
+        job.setReducerClass( IntSumReducer.class );
+
+        job.setOutputKeyClass( LongWritable.class );
+        job.setOutputValueClass( Collections.class );
+
+        job.setInputFormatClass( MongoInputFormat.class );
+        job.setOutputFormatClass( MongoOutputFormat.class );
+
+        System.exit( job.waitForCompletion( true ) ? 0 : 1 );
     }
 }
-
